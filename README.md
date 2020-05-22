@@ -1,1 +1,1 @@
-# mc-immersion
+# Welcome to the sample project for the immersion day!
