@@ -3,6 +3,8 @@ import * as autoscaling from '@aws-cdk/aws-autoscaling';
 import * as ec2 from '@aws-cdk/aws-ec2';
 import * as elbv2 from '@aws-cdk/aws-elasticloadbalancingv2';
 import * as docdb from '@aws-cdk/aws-docdb';
+import * as iam from '@aws-cdk/aws-iam';
+import { ManagedPolicy } from '@aws-cdk/aws-iam';
 
 export class MCStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -64,16 +66,30 @@ export class MCStack extends cdk.Stack {
     sg.addIngressRule(ec2.Peer.ipv4(vpcCidr), ec2.Port.tcp(port));
     
     /* ======== Austoscaling EC2 & ALB ======== */
+    const role = new iam.Role(this, 'MC-AppServerRole', {
+        assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')
+    });
+    role.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'))
+    
     const asg = new autoscaling.AutoScalingGroup(this, 'ASG', {
       vpc,
       vpcSubnets: vpc.selectSubnets({ subnetType: ec2.SubnetType.PUBLIC }),
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
-      machineImage: new ec2.AmazonLinuxImage(),
+      machineImage: new ec2.AmazonLinuxImage({generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2}),
+      role: role,
       desiredCapacity: 2,
       maxCapacity:4,
       minCapacity: 2,
       healthCheck: autoscaling.HealthCheck.ec2()
     });
+    
+    let appSG = new ec2.SecurityGroup(this, 'App-SG', {
+      description: 'Allow ssh & http access to ec2 instances',
+      vpc: vpc
+    });
+    appSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'allow ssh access from any ipv4 ip');
+    appSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'allow http access from any ipv4 ip');
+    asg.addSecurityGroup(appSG);
     
     const lb = new elbv2.ApplicationLoadBalancer(this, 'ALB', {
       vpc,
