@@ -16,3 +16,9 @@ install-ec2connect:
 connect-mssh:
 	mssh i-0346af1118caa45d5
 	
+install-nginx:
+	sudo amazon-linux-extras install nginx1 \
+	sudo yum install nginx \
+	sudo service nginx start \
+	ss -tlpn | grep :80 \
+	
