@@ -8,12 +8,8 @@ export class MCStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
     
-    /* ======== CFN stack parameters ======== */
-    const port = 27017;
-    const vpcCidr = "10.0.0.0/21";
-    
-    
     /* ======== VPC & Networking ======== */
+    const vpcCidr = "10.0.0.0/21";
     const vpc = new ec2.Vpc(this, "mc-vpc", {
             cidr: vpcCidr,
             maxAzs: 2,
@@ -32,6 +28,7 @@ export class MCStack extends cdk.Stack {
         });
         
     /* ======== DocumentDB cluster ======== */
+    const port = 27017;
     const sg = new ec2.SecurityGroup(this, "docdb-sg", {
         vpc,
         securityGroupName: "docdb-sg",
@@ -78,12 +75,11 @@ export class MCStack extends cdk.Stack {
       healthCheck: autoscaling.HealthCheck.ec2()
     });
     
-
-     
     const lb = new elbv2.ApplicationLoadBalancer(this, 'ALB', {
       vpc,
       internetFacing: true
     });
+    new cdk.CfnOutput(this, 'Site', { value: 'https://' + lb.loadBalancerDnsName });
 
     const listener = lb.addListener('Listener', {
       port: 80,
