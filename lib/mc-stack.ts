@@ -79,7 +79,7 @@ export class MCStack extends cdk.Stack {
       vpc,
       internetFacing: true
     });
-    new cdk.CfnOutput(this, 'Site', { value: 'https://' + lb.loadBalancerDnsName });
+    new cdk.CfnOutput(this, 'Site', { value: 'http://' + lb.loadBalancerDnsName });
 
     const listener = lb.addListener('Listener', {
       port: 80,
